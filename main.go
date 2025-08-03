@@ -5,13 +5,11 @@ import (
 
 	"my_go_final_project/pkg/db"
 	"my_go_final_project/pkg/server"
-
 )
 
 func main() {
 	// инициализируем базу данных
-	_, err := db.Init()
-	if err != nil {
+	if err := db.Init(); err != nil {
 		log.Fatal(err)
 	}
 
