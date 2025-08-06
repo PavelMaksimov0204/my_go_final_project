@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"my_go_final_project/pkg/db"
@@ -61,5 +62,5 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// отправляем успешный ответ с ID новой задачи
-	writeJSON(w, map[string]any{"id": id})
+	writeJSON(w, map[string]any{"id": strconv.FormatInt(id, 10)})
 }

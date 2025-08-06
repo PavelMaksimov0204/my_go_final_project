@@ -9,10 +9,8 @@ import (
 func taskHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		// если метод POST, вызываем обработчик добавления задачи
 		addTaskHandler(w, r)
 	default:
-		// для всех других методов возвращаем ошибку
 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 	}
 }
@@ -20,8 +18,8 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 // Init регистрирует все обработчики API.
 func Init() {
 	http.HandleFunc("/api/nextdate", nextDateHandler)
-	// регистрируем новый маршрут
 	http.HandleFunc("/api/task", taskHandler)
+	http.HandleFunc("/api/tasks", tasksHandler)
 }
 
 // writeJSON отправляет JSON-ответ.
