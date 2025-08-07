@@ -1,5 +1,7 @@
 package db
 
+import "errors"
+
 // Task описывает задачу в планировщике.
 type Task struct {
 	ID      string `json:"id"`
@@ -37,4 +39,32 @@ func Tasks(limit int) ([]Task, error) {
 	}
 
 	return tasks, nil
+}
+
+// GetTask возвращает одну задачу по её ID.
+func GetTask(id string) (Task, error) {
+	var t Task
+	query := "SELECT id, date, title, comment, repeat FROM scheduler WHERE id = ?"
+	err := DB.QueryRow(query, id).Scan(&t.ID, &t.Date, &t.Title, &t.Comment, &t.Repeat)
+	return t, err
+}
+
+// UpdateTask обновляет задачу в базе данных.
+func UpdateTask(task Task) error {
+	query := `UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?`
+	res, err := DB.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
+	if err != nil {
+		return err
+	}
+
+	// проверяем, была ли обновлена хотя бы одна запись
+	count, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("задача не найдена")
+	}
+
+	return nil
 }
