@@ -13,15 +13,16 @@ type TasksResponse struct {
 
 // tasksHandler обрабатывает запрос на получение списка задач.
 func tasksHandler(w http.ResponseWriter, r *http.Request) {
-	// получаем задачи из БД, ограничиваемся 50-ю записями
-	tasks, err := db.Tasks(50)
+	// получаем параметр search из URL
+	search := r.URL.Query().Get("search")
+
+	// получаем задачи из БД с учетом поиска
+	tasks, err := db.Tasks(search, 50)
 	if err != nil {
-		// в случае ошибки отправляем JSON с ошибкой
 		writeJSON(w, map[string]string{"error": err.Error()})
 		return
 	}
 
-	// отправляем успешный ответ со списком задач
 	response := TasksResponse{Tasks: tasks}
 	writeJSON(w, response)
 }

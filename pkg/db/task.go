@@ -1,6 +1,10 @@
 package db
 
-import "errors"
+import (
+	"database/sql"
+	"errors"
+	"time"
+)
 
 // Task описывает задачу в планировщике.
 type Task struct {
@@ -11,10 +15,28 @@ type Task struct {
 	Repeat  string `json:"repeat"`
 }
 
-// Tasks возвращает список задач из базы данных.
-func Tasks(limit int) ([]Task, error) {
-	query := `SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT ?`
-	rows, err := DB.Query(query, limit)
+// Tasks возвращает список задач из базы данных с учетом поиска.
+func Tasks(search string, limit int) ([]Task, error) {
+	var rows *sql.Rows
+	var err error
+
+	// Проверяем, является ли поисковый запрос датой.
+	t, err := time.Parse("02.01.2006", search)
+	if err == nil {
+		// Если это дата, ищем точное совпадение.
+		query := `SELECT id, date, title, comment, repeat FROM scheduler WHERE date = ? LIMIT ?`
+		rows, err = DB.Query(query, t.Format("20060102"), limit)
+	} else if search != "" {
+		// Если это текст, ищем вхождение подстроки.
+		likeSearch := "%" + search + "%"
+		query := `SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE ? OR comment LIKE ? ORDER BY date LIMIT ?`
+		rows, err = DB.Query(query, likeSearch, likeSearch, limit)
+	} else {
+		// Если поиска нет, возвращаем все задачи.
+		query := `SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT ?`
+		rows, err = DB.Query(query, limit)
+	}
+
 	if err != nil {
 		return nil, err
 	}
