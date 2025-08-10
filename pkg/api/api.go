@@ -35,11 +35,14 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 
 // Init регистрирует все обработчики API.
 func Init() {
+	// защищенные маршруты
+	http.HandleFunc("/api/task", auth(taskHandler))
+	http.HandleFunc("/api/tasks", auth(tasksHandler))
+	http.HandleFunc("/api/task/done", auth(doneTaskHandler))
+
+	// открытые маршруты
 	http.HandleFunc("/api/nextdate", nextDateHandler)
-	http.HandleFunc("/api/task", taskHandler)
-	http.HandleFunc("/api/tasks", tasksHandler)
-	// регистрируем новый маршрут для выполнения задач
-	http.HandleFunc("/api/task/done", doneTaskHandler)
+	http.HandleFunc("/api/signin", signinHandler)
 }
 
 // writeJSON отправляет JSON-ответ.
