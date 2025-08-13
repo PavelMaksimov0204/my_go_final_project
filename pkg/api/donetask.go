@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -11,37 +12,34 @@ import (
 func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		writeJSON(w, map[string]string{"error": "не указан идентификатор"})
+		writeJSON(w, map[string]string{"error": "не указан идентификатор"}, http.StatusBadRequest)
 		return
 	}
 
-	// получаем задачу, чтобы проверить, есть ли у нее правило повторения
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "задача не найдена"})
+		writeJSON(w, map[string]string{"error": "задача не найдена"}, http.StatusNotFound)
 		return
 	}
 
-	// если правило повторения не задано, удаляем задачу
 	if task.Repeat == "" {
 		if err := db.DeleteTask(id); err != nil {
-			writeJSON(w, map[string]string{"error": err.Error()})
+			log.Printf("ошибка при удалении задачи: %v", err)
+			writeJSON(w, map[string]string{"error": "внутренняя ошибка сервера"}, http.StatusInternalServerError)
 			return
 		}
 	} else {
-		// если правило есть, вычисляем следующую дату
 		next, err := NextDate(time.Now(), task.Date, task.Repeat)
 		if err != nil {
-			writeJSON(w, map[string]string{"error": err.Error()})
+			writeJSON(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 			return
 		}
-		// и обновляем дату у задачи
 		if err := db.UpdateDate(id, next); err != nil {
-			writeJSON(w, map[string]string{"error": err.Error()})
+			log.Printf("ошибка при обновлении даты задачи: %v", err)
+			writeJSON(w, map[string]string{"error": "внутренняя ошибка сервера"}, http.StatusInternalServerError)
 			return
 		}
 	}
 
-	// отправляем успешный пустой ответ
-	writeJSON(w, map[string]string{})
+	writeJSON(w, map[string]string{}, http.StatusOK)
 }

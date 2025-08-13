@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"my_go_final_project/pkg/db"
@@ -17,19 +18,20 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		updateTaskHandler(w, r)
 	case http.MethodDelete:
-		// обрабатываем удаление задачи
 		id := r.URL.Query().Get("id")
 		if id == "" {
-			writeJSON(w, map[string]string{"error": "не указан идентификатор"})
+			writeJSON(w, map[string]string{"error": "не указан идентификатор"}, http.StatusBadRequest)
 			return
 		}
 		if err := db.DeleteTask(id); err != nil {
-			writeJSON(w, map[string]string{"error": err.Error()})
+			log.Printf("ошибка при удалении задачи: %v", err)
+			writeJSON(w, map[string]string{"error": "внутренняя ошибка сервера"}, http.StatusInternalServerError)
 			return
 		}
-		writeJSON(w, map[string]string{})
+		writeJSON(w, map[string]string{}, http.StatusOK)
 	default:
-		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+
+		writeJSON(w, map[string]string{"error": "Метод не поддерживается"}, http.StatusMethodNotAllowed)
 	}
 }
 
@@ -45,9 +47,10 @@ func Init() {
 	http.HandleFunc("/api/signin", signinHandler)
 }
 
-// writeJSON отправляет JSON-ответ.
-func writeJSON(w http.ResponseWriter, data any) {
+// writeJSON отправляет JSON-ответ c указанным кодом статуса.
+func writeJSON(w http.ResponseWriter, data any, statusCode int) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

@@ -2,38 +2,35 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
 	"my_go_final_project/pkg/db"
+
 )
 
 // updateTaskHandler обрабатывает обновление задачи.
 func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
-	// десериализуем JSON из тела запроса
 	var task db.Task
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSON(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
-	// проверяем обязательные поля
 	if task.Title == "" {
-		writeJSON(w, map[string]string{"error": "не указан заголовок задачи"})
+		writeJSON(w, map[string]string{"error": "не указан заголовок задачи"}, http.StatusBadRequest)
 		return
 	}
-
+	
 	now := time.Now()
-
-	// если дата не указана, берем сегодняшнюю
 	if task.Date == "" {
 		task.Date = now.Format(dateLayout)
 	}
 
-	// проверяем и обрабатываем дату
 	taskDate, err := time.Parse(dateLayout, task.Date)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "неверный формат даты"})
+		writeJSON(w, map[string]string{"error": "неверный формат даты"}, http.StatusBadRequest)
 		return
 	}
 
@@ -41,7 +38,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		if task.Repeat != "" {
 			next, err := NextDate(now, task.Date, task.Repeat)
 			if err != nil {
-				writeJSON(w, map[string]string{"error": err.Error()})
+				writeJSON(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 				return
 			}
 			task.Date = next
@@ -49,14 +46,13 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 			task.Date = now.Format(dateLayout)
 		}
 	}
-
-	// обновляем задачу в БД
+	
 	err = db.UpdateTask(task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		log.Printf("ошибка при обновлении задачи: %v", err)
+		writeJSON(w, map[string]string{"error": "внутренняя ошибка сервера"}, http.StatusInternalServerError)
 		return
 	}
 
-	// отправляем успешный пустой ответ
-	writeJSON(w, map[string]string{})
+	writeJSON(w, map[string]string{}, http.StatusOK)
 }

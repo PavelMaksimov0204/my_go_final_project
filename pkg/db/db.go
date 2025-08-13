@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 
 	_ "modernc.org/sqlite"
@@ -25,12 +26,9 @@ CREATE INDEX IF NOT EXISTS date_idx ON scheduler (date);
 // Init инициализирует соединение с БД.
 func Init() error {
 	var dbFile string
-	// Проверяем, запущено ли приложение в Docker.
 	if os.Getenv("RUNNING_IN_DOCKER") == "true" {
-		// Используем in-memory базу данных.
 		dbFile = "file::memory:?cache=shared"
 	} else {
-		// Используем файловую базу данных.
 		dbFile = os.Getenv("TODO_DBFILE")
 		if dbFile == "" {
 			dbFile = "scheduler.db"
@@ -40,12 +38,14 @@ func Init() error {
 	var err error
 	DB, err = sql.Open("sqlite", dbFile)
 	if err != nil {
-		return err
+		// оборачиваем ошибку
+		return fmt.Errorf("ошибка открытия базы данных: %w", err)
 	}
 
 	_, err = DB.Exec(schema)
 	if err != nil {
-		return err
+		// оборачиваем ошибку
+		return fmt.Errorf("ошибка выполнения схемы: %w", err)
 	}
 	return nil
 }
